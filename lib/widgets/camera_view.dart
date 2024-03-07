@@ -8,10 +8,9 @@ class CameraView extends StatefulWidget {
   final Function(QRViewController) onControllerCreated;
 
   const CameraView(
-      {Key? key,
+      {super.key,
       required this.onCodeScanned,
-      required this.onControllerCreated})
-      : super(key: key);
+      required this.onControllerCreated});
 
   @override
   _CameraViewState createState() => _CameraViewState();
@@ -37,7 +36,7 @@ class _CameraViewState extends State<CameraView> {
       key: qrKey,
       onQRViewCreated: _onQRViewCreated,
       overlay: QrScannerOverlayShape(
-        borderColor: const Color.fromARGB(255, 208, 56, 160),
+        borderColor: Color.fromARGB(255, 73, 99, 151),
         borderRadius: 10,
         borderLength: 30,
         borderWidth: 10,

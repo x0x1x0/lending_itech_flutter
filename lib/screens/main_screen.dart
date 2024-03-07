@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../models/scanned_data_model.dart';
@@ -5,6 +7,8 @@ import '../widgets/camera_view.dart';
 import 'data_list_screen.dart';
 
 class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -12,16 +16,23 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   QRViewController? controller;
   List<ScannedDataModel> scannedDataList = [];
-  bool showScanResult = false; // New state to control visibility of the card
-  String scanData = ''; // To hold scanned data
+  bool showScanResult = false; // State to control visibility of the card
 
   void _onQRScanned(Barcode scanData) {
-    // Pause the camera to stop scanning in the background
+    if (showScanResult) {
+      // If a confirmation is already being shown, ignore further scans
+      return;
+    }
+
     controller?.pauseCamera();
+    print("Scanned Raw Data: ${scanData.code}");
+
+    final jsonData = jsonDecode(scanData.code); // Decode the JSON string
+    final scannedData = ScannedDataModel.fromJson(jsonData); // Convert to model
 
     setState(() {
-      this.scanData = scanData.code!;
-      showScanResult = true; // Show the card with scan result
+      scannedDataList.add(scannedData);
+      showScanResult = true;
     });
   }
 
@@ -49,12 +60,12 @@ class _MainScreenState extends State<MainScreen> {
           CameraView(
             onCodeScanned: _onQRScanned,
             onControllerCreated: (QRViewController qrViewController) {
-              this.controller = qrViewController;
+              controller = qrViewController;
             },
           ),
-          if (showScanResult)
+          if (showScanResult && scannedDataList.isNotEmpty)
             Align(
-              alignment: Alignment.bottomCenter,
+              alignment: Alignment.center,
               child: Card(
                 elevation: 4.0,
                 margin: const EdgeInsets.all(12.0),
@@ -65,16 +76,19 @@ class _MainScreenState extends State<MainScreen> {
                     children: [
                       const Text('Scan Successful!',
                           style: TextStyle(fontSize: 18.0)),
-                      Icon(Icons.check_circle_outline,
-                          color: Colors.green, size: 60),
-                      Text('Data: $scanData'),
+                      const Icon(Icons.check_circle_outline,
+                          color: Color.fromARGB(255, 104, 187, 107), size: 60),
+                      // Display the scanned item's name and ID
+                      Text('Item Name: ${scannedDataList.last.itemName}'),
+                      Text('Item ID: ${scannedDataList.last.itemId}'),
                       ElevatedButton(
                         onPressed: () {
                           setState(() {
-                            scannedDataList.add(ScannedDataModel(scanData));
-                            showScanResult = false; // Hide the card
-                            controller?.resumeCamera(); // Resume scanning
+                            showScanResult =
+                                false; // Hide the confirmation card
                           });
+                          controller
+                              ?.resumeCamera(); // Resume scanning immediately
                         },
                         child: const Text('Store this data'),
                       ),

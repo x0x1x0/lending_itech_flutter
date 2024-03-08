@@ -1,10 +1,17 @@
+// data_list_screen.dart
 import 'package:flutter/material.dart';
 import '../models/scanned_data_model.dart';
+import 'scanning_screen.dart'; // Adjust the import path as necessary
 
-class DataListScreen extends StatelessWidget {
-  final List<ScannedDataModel> dataList;
+class DataListScreen extends StatefulWidget {
+  const DataListScreen({Key? key}) : super(key: key);
 
-  const DataListScreen({super.key, required this.dataList});
+  @override
+  State<DataListScreen> createState() => _DataListScreenState();
+}
+
+class _DataListScreenState extends State<DataListScreen> {
+  List<ScannedDataModel> dataList = [];
 
   @override
   Widget build(BuildContext context) {
@@ -16,9 +23,7 @@ class DataListScreen extends StatelessWidget {
         itemCount: dataList.length,
         itemBuilder: (context, index) {
           final item = dataList[index];
-          // Using a Card to display each item's name and ID
           return Card(
-            elevation: 4.0,
             margin: const EdgeInsets.all(8.0),
             child: ListTile(
               title: Text(item.itemName),
@@ -26,6 +31,20 @@ class DataListScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ScanningScreen(
+              onDataScanned: (ScannedDataModel scannedData) {
+                setState(() {
+                  dataList.add(scannedData);
+                });
+              },
+            ),
+          ),
+        ),
+        child: const Icon(Icons.add),
       ),
     );
   }

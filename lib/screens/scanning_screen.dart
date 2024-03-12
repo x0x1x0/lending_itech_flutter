@@ -1,10 +1,9 @@
-// scanning_screen.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:lending_app/screens/settings_screen.dart';
 import 'package:lending_app/services/api_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/scanned_data_model.dart';
 import '../widgets/camera_view.dart';
 
@@ -21,6 +20,26 @@ class ScanningScreen extends StatefulWidget {
 class _ScanningScreenState extends State<ScanningScreen> {
   QRViewController? controller;
   bool showScanResult = false;
+  bool _hasCameraPermission = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkCameraPermission();
+  }
+
+  Future<void> _checkCameraPermission() async {
+    var status = await Permission.camera.status;
+    if (!status.isGranted) {
+      await Permission.camera.request();
+    }
+
+    // Re-check after the request
+    status = await Permission.camera.status;
+    setState(() {
+      _hasCameraPermission = status.isGranted;
+    });
+  }
 
   void _onQRScanned(Barcode scanData) {
     if (showScanResult) return;
@@ -38,6 +57,14 @@ class _ScanningScreenState extends State<ScanningScreen> {
     }
   }
 
+  void _debugScan() {
+    const jsonString = '{"id":2,"deviceName":"ElectroTech M1"}';
+    final jsonData = jsonDecode(jsonString);
+    final scannedData = ScannedDataModel.fromJson(jsonData);
+
+    _showConfirmationDialog(scannedData);
+  }
+
   void _showConfirmationDialog(ScannedDataModel scannedData) {
     showDialog(
       context: context,
@@ -48,8 +75,8 @@ class _ScanningScreenState extends State<ScanningScreen> {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text('Item Name: ${scannedData.deviceName}'),
-                Text('Item ID: ${scannedData.id}'),
+                Text('Device Name: ${scannedData.deviceName}'),
+                Text('Device ID: ${scannedData.id}'),
               ],
             ),
           ),
@@ -59,15 +86,14 @@ class _ScanningScreenState extends State<ScanningScreen> {
               onPressed: () async {
                 final success =
                     await ApiService.updateItemBorrower(scannedData.id);
-
                 Navigator.of(context).pop(); // Close the dialog
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Data stored successfully!")));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Failed to store data.")));
-                }
+
+                print('Update item borrower request was successful: $success');
+
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text(success
+                        ? "Data stored successfully!"
+                        : "Failed to store data.")));
 
                 setState(() => showScanResult = false);
                 controller?.resumeCamera();
@@ -126,11 +152,23 @@ class _ScanningScreenState extends State<ScanningScreen> {
           ),
         ],
       ),
-      body: CameraView(
-        onCodeScanned: _onQRScanned,
-        onControllerCreated: (QRViewController qrViewController) {
-          controller = qrViewController;
-        },
+      body: _hasCameraPermission
+          ? CameraView(
+              onCodeScanned: _onQRScanned,
+              onControllerCreated: (QRViewController qrViewController) {
+                controller = qrViewController;
+              },
+            )
+          : Center(
+              child: Text(
+                'Camera permission is not granted.\nUse the debug button below to simulate a scan.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _debugScan,
+        child: const Icon(Icons.code),
+        tooltip: "Debug Scan",
       ),
     );
   }

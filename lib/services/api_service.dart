@@ -14,13 +14,24 @@ class ApiService {
       return false;
     }
 
-    final url = Uri.parse('$_baseUrl/item/$itemId/');
-    final response = await http.patch(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'borrowed_by_user_id': userId}),
-    );
+    final url = Uri.parse('$_baseUrl/item/id/$itemId/');
+    print('Making a PATCH request to $url');
+    print('Body: ${jsonEncode({'borrowed_by_user': userId})}');
 
-    return response.statusCode == 200;
+    try {
+      final response = await http.patch(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'borrowed_by_user': userId}),
+      );
+
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Exception caught during API call: $e');
+      return false;
+    }
   }
 }

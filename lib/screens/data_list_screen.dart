@@ -1,5 +1,6 @@
 // data_list_screen.dart
 import 'package:flutter/material.dart';
+import 'package:lending_app/screens/settings_screen.dart';
 import '../models/scanned_data_model.dart';
 import 'scanning_screen.dart'; // Adjust the import path as necessary
 
@@ -18,6 +19,14 @@ class _DataListScreenState extends State<DataListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Stored Data'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => SettingsScreen()),
+            ),
+          ),
+        ],
       ),
       body: ListView.builder(
         itemCount: dataList.length,
@@ -26,8 +35,9 @@ class _DataListScreenState extends State<DataListScreen> {
           return Card(
             margin: const EdgeInsets.all(8.0),
             child: ListTile(
-              title: Text(item.itemName),
-              subtitle: Text('ID: ${item.itemId}'),
+              title:
+                  Text(item.deviceName), // Use deviceName instead of itemName
+              subtitle: Text('ID: ${item.id}'), // Use id (int) directly
             ),
           );
         },

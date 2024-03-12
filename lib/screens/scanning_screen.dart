@@ -1,7 +1,10 @@
 // scanning_screen.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:lending_app/screens/settings_screen.dart';
+import 'package:lending_app/services/api_service.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/scanned_data_model.dart';
 import '../widgets/camera_view.dart';
 
@@ -19,14 +22,9 @@ class _ScanningScreenState extends State<ScanningScreen> {
   QRViewController? controller;
   bool showScanResult = false;
 
-  // Inside ScanningScreen
   void _onQRScanned(Barcode scanData) {
-    if (showScanResult) {
-      // If a confirmation is already being shown, ignore further scans
-      return;
-    }
+    if (showScanResult) return;
 
-    // Pause scanning as soon as a QR code is detected
     controller?.pauseCamera();
     print("Scanned Raw Data: ${scanData.code}");
 
@@ -34,57 +32,59 @@ class _ScanningScreenState extends State<ScanningScreen> {
       final jsonData = jsonDecode(scanData.code);
       final scannedData = ScannedDataModel.fromJson(jsonData);
 
-      // Directly show the confirmation dialog
       _showConfirmationDialog(scannedData);
     } catch (e) {
-      // Show an error dialog if the scanned data is not in the expected format
       _showErrorDialog('Invalid QR code. Please scan a valid QR code.');
     }
   }
 
   void _showConfirmationDialog(ScannedDataModel scannedData) {
-    setState(() {
-      showScanResult = true;
-    });
-
     showDialog(
       context: context,
-      barrierDismissible: false, // User must tap a button to close the dialog
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Scan Successful!'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
-                Text('Item Name: ${scannedData.itemName}'),
-                Text('Item ID: ${scannedData.itemId}'),
+                Text('Item Name: ${scannedData.deviceName}'),
+                Text('Item ID: ${scannedData.id}'),
               ],
             ),
           ),
           actions: <Widget>[
             TextButton(
               child: const Text('Store this data'),
-              onPressed: () {
-                widget.onDataScanned(scannedData); // Notify parent widget
+              onPressed: () async {
+                final success =
+                    await ApiService.updateItemBorrower(scannedData.id);
+
                 Navigator.of(context).pop(); // Close the dialog
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Data stored successfully!")));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Failed to store data.")));
+                }
+
+                setState(() => showScanResult = false);
+                controller?.resumeCamera();
               },
             ),
             TextButton(
               child: const Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
+                setState(() => showScanResult = false);
+                controller?.resumeCamera();
               },
             ),
           ],
         );
       },
-    ).then((_) {
-      // Resume scanning immediately after the dialog is dismissed
-      if (mounted) {
-        setState(() => showScanResult = false);
-        controller?.resumeCamera();
-      }
-    });
+    );
   }
 
   void _showErrorDialog(String message) {
@@ -115,7 +115,17 @@ class _ScanningScreenState extends State<ScanningScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan QR Code')),
+      appBar: AppBar(
+        title: const Text('Scan QR Code'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => SettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       body: CameraView(
         onCodeScanned: _onQRScanned,
         onControllerCreated: (QRViewController qrViewController) {

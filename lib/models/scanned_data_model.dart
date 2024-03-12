@@ -1,13 +1,13 @@
 class ScannedDataModel {
-  final String itemName;
-  final String itemId;
+  final int id;
+  final String deviceName;
 
-  ScannedDataModel({required this.itemName, required this.itemId});
+  ScannedDataModel({required this.id, required this.deviceName});
 
   factory ScannedDataModel.fromJson(Map<String, dynamic> json) {
     return ScannedDataModel(
-      itemName: json['itemName'],
-      itemId: json['itemId'],
+      id: json['id'],
+      deviceName: json['deviceName'],
     );
   }
 }

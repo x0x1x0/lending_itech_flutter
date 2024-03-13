@@ -5,7 +5,7 @@ import '../models/scanned_data_model.dart';
 import 'scanning_screen.dart'; // Adjust the import path as necessary
 
 class DataListScreen extends StatefulWidget {
-  const DataListScreen({Key? key}) : super(key: key);
+  const DataListScreen({super.key});
 
   @override
   State<DataListScreen> createState() => _DataListScreenState();
@@ -21,9 +21,9 @@ class _DataListScreenState extends State<DataListScreen> {
         title: const Text('Stored Data'),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings),
+            icon: const Icon(Icons.settings),
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => SettingsScreen()),
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
             ),
           ),
         ],

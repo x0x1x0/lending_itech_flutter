@@ -36,7 +36,7 @@ class _CameraViewState extends State<CameraView> {
       key: qrKey,
       onQRViewCreated: _onQRViewCreated,
       overlay: QrScannerOverlayShape(
-        borderColor: Color.fromARGB(255, 73, 99, 151),
+        borderColor: const Color.fromARGB(255, 73, 99, 151),
         borderRadius: 10,
         borderLength: 30,
         borderWidth: 10,

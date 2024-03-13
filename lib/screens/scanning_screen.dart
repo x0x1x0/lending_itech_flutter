@@ -10,14 +10,14 @@ import '../widgets/camera_view.dart';
 class ScanningScreen extends StatefulWidget {
   final Function(ScannedDataModel) onDataScanned;
 
-  const ScanningScreen({Key? key, required this.onDataScanned})
-      : super(key: key);
+  const ScanningScreen({super.key, required this.onDataScanned});
 
   @override
   _ScanningScreenState createState() => _ScanningScreenState();
 }
 
-class _ScanningScreenState extends State<ScanningScreen> {
+class _ScanningScreenState extends State<ScanningScreen>
+    with WidgetsBindingObserver {
   QRViewController? controller;
   bool showScanResult = false;
   bool _hasCameraPermission = false;
@@ -25,7 +25,22 @@ class _ScanningScreenState extends State<ScanningScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this); // Add observer
     _checkCameraPermission();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove observer
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _checkCameraPermission(); // Re-check permissions when app resumes
+    }
   }
 
   Future<void> _checkCameraPermission() async {
@@ -58,7 +73,7 @@ class _ScanningScreenState extends State<ScanningScreen> {
   }
 
   void _debugScan() {
-    const jsonString = '{"id":2,"deviceName":"ElectroTech M1"}';
+    const jsonString = '{"id":3,"deviceName":"ElectroTech M1"}';
     final jsonData = jsonDecode(jsonString);
     final scannedData = ScannedDataModel.fromJson(jsonData);
 
@@ -147,7 +162,7 @@ class _ScanningScreenState extends State<ScanningScreen> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => SettingsScreen()),
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
             ),
           ),
         ],
@@ -159,7 +174,7 @@ class _ScanningScreenState extends State<ScanningScreen> {
                 controller = qrViewController;
               },
             )
-          : Center(
+          : const Center(
               child: Text(
                 'Camera permission is not granted.\nUse the debug button below to simulate a scan.',
                 textAlign: TextAlign.center,
@@ -167,8 +182,8 @@ class _ScanningScreenState extends State<ScanningScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _debugScan,
-        child: const Icon(Icons.code),
         tooltip: "Debug Scan",
+        child: const Icon(Icons.code),
       ),
     );
   }

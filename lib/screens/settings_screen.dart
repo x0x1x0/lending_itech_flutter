@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
   @override
   _SettingsScreenState createState() => _SettingsScreenState();
 }
@@ -30,7 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Settings"),
+        title: const Text("Settings"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -38,17 +40,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             TextField(
               controller: _idController,
-              decoration: InputDecoration(labelText: "User ID"),
+              decoration: const InputDecoration(labelText: "User ID"),
               keyboardType: TextInputType.number,
             ),
             ElevatedButton(
               onPressed: () {
                 _saveUserId();
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                   content: Text("User ID saved!"),
                 ));
               },
-              child: Text("Save"),
+              child: const Text("Save"),
             ),
           ],
         ),

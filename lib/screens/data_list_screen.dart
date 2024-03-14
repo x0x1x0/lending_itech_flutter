@@ -20,12 +20,12 @@ class _DataListScreenState extends State<DataListScreen> {
   }
 
   Future<void> _loadBorrowedItems() async {
-    print("Fetching items borrowed by the user...");
-    List<dynamic> items = await ApiService.fetchItemsBorrowedByUser();
-    print("Items fetched: ${items.length}");
-    setState(() {
-      dataList = items;
-    });
+    var items = await ApiService.fetchItemsBorrowedByUser();
+    if (mounted) {
+      setState(() {
+        dataList = items;
+      });
+    }
   }
 
   @override
@@ -36,35 +36,60 @@ class _DataListScreenState extends State<DataListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                builder: (context) => const SettingsScreen())),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const SettingsScreen(),
+              ),
+            ),
           ),
         ],
       ),
       body: RefreshIndicator(
         onRefresh: _loadBorrowedItems,
-        child: Padding(
-          padding: const EdgeInsets.only(top: 16.0),
-          child: ListView.builder(
-            itemCount: dataList.length,
-            itemBuilder: (context, index) {
-              final item = dataList[index];
-              print("Displaying item: ${item['id']}");
-              return Card(
-                margin: const EdgeInsets.all(8.0),
+        child: ListView.builder(
+          itemCount: dataList.length,
+          itemBuilder: (context, index) {
+            final item = dataList[index];
+            return Dismissible(
+              key: Key(item['id'].toString()),
+              background: Container(
+                color: Colors.red,
+                alignment: Alignment.centerRight,
+                padding: EdgeInsets.only(right: 20),
+                child: const Icon(Icons.delete, color: Colors.white),
+              ),
+              direction: DismissDirection.endToStart,
+              onDismissed: (direction) async {
+                bool success = await ApiService.returnItem(item['id']);
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Item returned successfully!'),
+                  ));
+                  _loadBorrowedItems(); // Reload items
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text('Failed to return item.'),
+                  ));
+                }
+              },
+              child: Card(
+                margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                 child: ListTile(
-                  title: Text(item['product_type']['name'] ?? 'N/A'),
-                  subtitle: Text('ID: ${item['id'].toString()}'),
+                  title: Text(item['product_type']['name'] ?? 'Unknown Item'),
+                  subtitle: Text('ID: ${item['id']}'),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.amber,
-        onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-            builder: (context) => ScanningScreen(onDataScanned: (_) {}))),
+        onPressed: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => ScanningScreen(onDataScanned: (_) {}),
+          ),
+        ),
         child: const Icon(Icons.add),
         tooltip: "Add New Scan",
       ),

@@ -1,8 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:lending_app/screens/settings_screen.dart';
 import 'package:lending_app/services/api_service.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
 import '../models/scanned_data_model.dart';
 import '../widgets/camera_view.dart';
@@ -10,74 +10,53 @@ import '../widgets/camera_view.dart';
 class ScanningScreen extends StatefulWidget {
   final Function(ScannedDataModel) onDataScanned;
 
-  const ScanningScreen({super.key, required this.onDataScanned});
+  const ScanningScreen({Key? key, required this.onDataScanned})
+      : super(key: key);
 
   @override
   _ScanningScreenState createState() => _ScanningScreenState();
 }
 
-class _ScanningScreenState extends State<ScanningScreen>
-    with WidgetsBindingObserver {
+class _ScanningScreenState extends State<ScanningScreen> {
   QRViewController? controller;
-  bool showScanResult = false;
-  bool _hasCameraPermission = false;
+  bool isScanning = false; // Assume we start in scanning mode
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this); // Add observer
-    _checkCameraPermission();
+    // Optionally initialize scanning state here
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // Remove observer
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
-      _checkCameraPermission(); // Re-check permissions when app resumes
-    }
-  }
-
-  Future<void> _checkCameraPermission() async {
-    var status = await Permission.camera.status;
-    if (!status.isGranted) {
-      await Permission.camera.request();
-    }
-
-    // Re-check after the request
-    status = await Permission.camera.status;
+  void _toggleScanning() {
     setState(() {
-      _hasCameraPermission = status.isGranted;
+      isScanning = !isScanning; // Toggle scanning state
     });
+
+    if (isScanning) {
+      controller?.resumeCamera(); // Resume camera for visual feedback
+    } else {
+      controller
+          ?.pauseCamera(); // Optionally pause camera if you want to freeze the view
+    }
   }
 
   void _onQRScanned(Barcode scanData) {
-    if (showScanResult) return;
+    if (!isScanning) return; // Do not process if we're not in scanning mode
 
-    controller?.pauseCamera();
-    print("Scanned Raw Data: ${scanData.code}");
+    // Assuming you still want to stop scanning upon a successful scan:
+    setState(() {
+      isScanning = false;
+    });
 
     try {
       final jsonData = jsonDecode(scanData.code);
       final scannedData = ScannedDataModel.fromJson(jsonData);
-
       _showConfirmationDialog(scannedData);
     } catch (e) {
       _showErrorDialog('Invalid QR code. Please scan a valid QR code.');
     }
-  }
 
-  void _debugScan() {
-    const jsonString = '{"id":3,"deviceName":"ElectroTech M1"}';
-    final jsonData = jsonDecode(jsonString);
-    final scannedData = ScannedDataModel.fromJson(jsonData);
-
-    _showConfirmationDialog(scannedData);
+    // Don't pause the camera here if you want it to remain active
   }
 
   void _showConfirmationDialog(ScannedDataModel scannedData) {
@@ -86,7 +65,7 @@ class _ScanningScreenState extends State<ScanningScreen>
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Scan Successful!'),
+          title: Text('Scan Successful!'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
@@ -97,29 +76,36 @@ class _ScanningScreenState extends State<ScanningScreen>
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Store this data'),
+              child: Text('Store this data'),
               onPressed: () async {
+                
                 final success =
                     await ApiService.updateItemBorrower(scannedData.id);
-                Navigator.of(context).pop(); // Close the dialog
 
-                print('Update item borrower request was successful: $success');
+                if (mounted) {
+                  // Close the dialog first
+                  Navigator.of(context).pop();
 
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  // Then show the snackbar with the operation result
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                     content: Text(success
                         ? "Data stored successfully!"
-                        : "Failed to store data.")));
+                        : "Failed to store data."),
+                  ));
 
-                setState(() => showScanResult = false);
-                controller?.resumeCamera();
+                  // Lastly, resume the camera if the widget is still part of the tree
+                  controller?.resumeCamera();
+                }
               },
             ),
             TextButton(
-              child: const Text('Cancel'),
+              child: Text('Cancel'),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                setState(() => showScanResult = false);
-                controller?.resumeCamera();
+                Navigator.of(context).pop();
+                if (mounted) {
+                  // Resume camera without enabling scanning
+                  controller?.resumeCamera();
+                }
               },
             ),
           ],
@@ -133,57 +119,46 @@ class _ScanningScreenState extends State<ScanningScreen>
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Error'),
+          title: Text('Error'),
           content: Text(message),
           actions: <Widget>[
             TextButton(
-              child: const Text('OK'),
+              child: Text('OK'),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
             ),
           ],
         );
       },
-    ).then((_) {
-      if (mounted) {
-        setState(() => showScanResult = false);
-        controller?.resumeCamera();
-      }
-    });
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan QR Code'),
+        title: Text('Scan QR Code'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: Icon(Icons.settings),
             onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const SettingsScreen()),
-            ),
+                MaterialPageRoute(builder: (context) => SettingsScreen())),
           ),
         ],
       ),
-      body: _hasCameraPermission
-          ? CameraView(
-              onCodeScanned: _onQRScanned,
-              onControllerCreated: (QRViewController qrViewController) {
-                controller = qrViewController;
-              },
-            )
-          : const Center(
-              child: Text(
-                'Camera permission is not granted.\nUse the debug button below to simulate a scan.',
-                textAlign: TextAlign.center,
-              ),
-            ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _debugScan,
-        tooltip: "Debug Scan",
-        child: const Icon(Icons.code),
+      body: CameraView(
+        onCodeScanned: _onQRScanned,
+        onControllerCreated: (QRViewController qrViewController) {
+          this.controller = qrViewController;
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: Colors.amber,
+        onPressed: _toggleScanning,
+        icon: Icon(Icons.camera_alt),
+        label: Text('Scan Code'),
+        tooltip: isScanning ? "Pause Scanning" : "Resume Scanning",
       ),
     );
   }

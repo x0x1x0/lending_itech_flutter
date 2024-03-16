@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:lending_app/screens/settings_screen.dart';
@@ -78,7 +77,6 @@ class _ScanningScreenState extends State<ScanningScreen> {
             TextButton(
               child: Text('Store this data'),
               onPressed: () async {
-                
                 final success =
                     await ApiService.updateItemBorrower(scannedData.id);
 
